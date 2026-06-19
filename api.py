@@ -116,6 +116,15 @@ col1.metric(label="Intensidad (RSSI)", value=f"{resultados['rssi']} dBm")
 col2.metric(label="Velocidad Real", value=f"{resultados['velocidad_mbps']} Mbps")
 col3.metric(label="Latencia (Ping)", value=f"{resultados['latencia_ms']} ms")
 
+# --- NUEVA SECCIÓN DE EXPLICACIÓN DE RESULTADOS ---
+with st.expander("🔍 ¿Qué significan estos resultados?"):
+    st.markdown("""
+    * **Intensidad (RSSI):** Mide la potencia de la señal recibida en decibelios relativos a un milivatio (dBm). Al ser valores negativos, **cuanto más cerca esté de 0, mejor** (ej. -30 dBm es excelente, mientras que -85 dBm es una señal muy débil). Las paredes y la distancia la disminuyen drásticamente.
+    * **Velocidad Real:** Es el ancho de banda efectivo de bajada estimado en Megabits por segundo (Mbps). Representa qué tan rápido puedes descargar archivos o reproducir contenido. Se calcula reduciendo el máximo teórico de la generación Wi-Fi elegida según la pérdida de señal y la saturación/congestión del entorno.
+    * **Latencia (Ping):** Es el tiempo de respuesta de la conexión medido en milisegundos (ms). Indica cuánto tarda un paquete de datos en ir a su destino y volver. **A menor latencia, más instantánea es la conexión** (crucial para juegos en línea o videollamadas). Si la velocidad llega a cero, se vuelve infinita ($\infty$), indicando pérdida total de enlace.
+    """)
+# --------------------------------------------------
+
 st.markdown("---")
 
 # Alertas visuales según el estado de la conexión
@@ -131,5 +140,4 @@ elif estado == 'Regular':
 elif estado == 'Mala':
     st.error(f"🟠 **Conexión {estado}**: Calidad crítica. Navegación lenta y desconexiones intermitentes muy probables.")
 else:
-    # Solucionado: st.error maneja correctamente el caso 'Desconectado'
     st.error(f"🔴 **{estado}**: No llega suficiente señal al dispositivo para sincronizar datos.")
