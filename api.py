@@ -131,4 +131,4 @@ elif estado == 'Regular':
 elif estado == 'Mala':
     st.error(f"🟠 **Conexión {estado}**: Calidad crítica. Navegación lenta y desconexiones intermitentes muy probables.")
 else:
-    st.critical(f"🔴 **{estado}**: No llega suficiente señal al dispositivo para sincronizar datos.")
+    st.error(f"🔴 **{estado}**: No llega suficiente señal al dispositivo para sincronizar datos.")
