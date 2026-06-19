@@ -116,13 +116,22 @@ col1.metric(label="Intensidad (RSSI)", value=f"{resultados['rssi']} dBm")
 col2.metric(label="Velocidad Real", value=f"{resultados['velocidad_mbps']} Mbps")
 col3.metric(label="Latencia (Ping)", value=f"{resultados['latencia_ms']} ms")
 
-# --- NUEVA SECCIÓN: Explicación de los parámetros ---
-with st.expander("❓ ¿Qué significan estos resultados?"):
-    st.markdown("""
-    * **Intensidad (RSSI):** Indica la potencia de la señal recibida en decibelios relativos a un milivatio (dBm). Al ser valores negativos, **mientras más cerca esté de 0, mejor**. Por ejemplo, `-30 dBm` es una señal perfecta al lado del router, mientras que `-80 dBm` o menos es una señal muy débil.
-    * **Velocidad Real (Throughput):** Es el ancho de banda efectivo medido en Megabits por segundo (Mbps) al que tu dispositivo puede transferir datos. Se calcula reduciendo la velocidad máxima teórica en función de la pérdida de señal y la congestión del entorno.
-    * **Latencia (Ping):** Mide el tiempo de ida y vuelta (en milisegundos) que tarda un paquete de datos en viajar desde tu dispositivo al router. Un número **más bajo es mejor**. Si la señal es mala o hay saturación, aumentará debido a la pérdida y retransmisión de paquetes.
-    """)
+# --- EXPLICACIÓN VISIBLE DIRECTAMENTE EN LA APP ---
+st.markdown("#### 🔍 Entendiendo las métricas:")
+
+exp_col1, exp_col2, exp_col3 = st.columns(3)
+
+with exp_col1:
+    st.caption("**Intensidad (RSSI):**")
+    st.markdown("<small>Potencia de la señal. Al ser valores negativos, <b>más cerca de 0 es mejor</b> (-30 dBm es ideal, -90 dBm es desconexión).</small>", unsafe_allow_html=True)
+
+with exp_col2:
+    st.caption("**Velocidad Real:**")
+    st.markdown("<small>Ancho de banda efectivo (Mbps) para transferir datos. Disminuye por la distancia, muros y congestión de la red.</small>", unsafe_allow_html=True)
+
+with exp_col3:
+    st.caption("**Latencia (Ping):**")
+    st.markdown("<small>Tiempo de respuesta (ms) del router. <b>Menor es mejor</b>. Si la señal es baja, aumenta por retransmisión de paquetes.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -133,10 +142,4 @@ estado = resultados['estado']
 if estado == 'Excelente':
     st.success(f"🟢 **Conexión {estado}**: Ideal para streaming 4K/8K, gaming competitivo y descargas masivas sin interrupciones.")
 elif estado == 'Buena':
-    st.info(f"🔵 **Conexión {estado}**: Rendimiento fluido para la mayoría de tareas diarias y videollamadas en HD.")
-elif estado == 'Regular':
-    st.warning(f"🟡 **Conexión {estado}**: Podrías experimentar almacenamiento en búfer (*buffering*) ocasional o picos de lag.")
-elif estado == 'Mala':
-    st.error(f"🟠 **Conexión {estado}**: Calidad crítica. Navegación lenta y desconexiones intermitentes muy probables.")
-else:
-    st.error(f"🔴 **{estado}**: No llega suficiente señal al dispositivo para sincronizar datos.")
+    st.info(f"🔵 **Conexión {estado}**: Rendimiento fluido para la mayoría de tareas diarias y vide
