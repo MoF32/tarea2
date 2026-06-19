@@ -108,6 +108,18 @@ datos_entrada = {
 # Ejecutar la simulación automáticamente al mover los controles
 resultados = calcular_simulacion_wifi(datos_entrada)
 
+# --- NUEVA SECCIÓN: EXPLICACIÓN DE PARÁMETROS DE ENTRADA ---
+with st.expander("⚙️ ¿Qué significan los parámetros de simulación?"):
+    st.markdown("""
+    * **Generación Wi-Fi:** Define la tecnología del estándar actual (802.11). Las versiones más nuevas (**Wi-Fi 6 y 7**) utilizan mejores modulaciones y tecnologías para transferir más datos por segundo y ofrecer latencias base extremadamente bajas en comparación con los antiguos **Wi-Fi 4 y 5**.
+    * **Banda de Frecuencia:** La frecuencia de la onda de radio. La banda **2.4 GHz** viaja más lejos y atraviesa mejor los obstáculos, pero es lenta y saturada. Las bandas de **5 GHz y 6 GHz** ofrecen velocidades masivas, pero su onda más corta sufre una pérdida drástica de potencia al chocar con paredes u objetos.
+    * **Distancia al Router:** El espacio físico entre tu dispositivo y el punto de acceso. Las ondas de radio disminuyen su potencia de manera logarítmica respecto a la distancia; a mayor distancia, menor señal (RSSI).
+    * **Paredes de concreto:** Obstáculos físicos directos. El concreto absorbe las ondas electromagnéticas de alta frecuencia de forma severa. Cada pared añadida reduce críticamente la potencia restante del enlace.
+    * **Congestión de la Red:** El nivel de interferencia y tráfico debido a otros dispositivos conectados en tu hogar o en redes vecinas usando el mismo canal. No afecta la potencia física de la señal (RSSI), pero compite por los tiempos de transmisión, limitando la velocidad real y elevando la latencia (*lag*).
+    """)
+
+st.markdown("---")
+
 # Mostrar resultados principales en métricas atractivas
 st.subheader("📊 Resultados del Diagnóstico")
 
@@ -116,14 +128,13 @@ col1.metric(label="Intensidad (RSSI)", value=f"{resultados['rssi']} dBm")
 col2.metric(label="Velocidad Real", value=f"{resultados['velocidad_mbps']} Mbps")
 col3.metric(label="Latencia (Ping)", value=f"{resultados['latencia_ms']} ms")
 
-# --- NUEVA SECCIÓN DE EXPLICACIÓN DE RESULTADOS ---
+# SECCIÓN DE EXPLICACIÓN DE RESULTADOS
 with st.expander("🔍 ¿Qué significan estos resultados?"):
     st.markdown("""
     * **Intensidad (RSSI):** Mide la potencia de la señal recibida en decibelios relativos a un milivatio (dBm). Al ser valores negativos, **cuanto más cerca esté de 0, mejor** (ej. -30 dBm es excelente, mientras que -85 dBm es una señal muy débil). Las paredes y la distancia la disminuyen drásticamente.
     * **Velocidad Real:** Es el ancho de banda efectivo de bajada estimado en Megabits por segundo (Mbps). Representa qué tan rápido puedes descargar archivos o reproducir contenido. Se calcula reduciendo el máximo teórico de la generación Wi-Fi elegida según la pérdida de señal y la saturación/congestión del entorno.
     * **Latencia (Ping):** Es el tiempo de respuesta de la conexión medido en milisegundos (ms). Indica cuánto tarda un paquete de datos en ir a su destino y volver. **A menor latencia, más instantánea es la conexión** (crucial para juegos en línea o videollamadas). Si la velocidad llega a cero, se vuelve infinita ($\infty$), indicando pérdida total de enlace.
     """)
-# --------------------------------------------------
 
 st.markdown("---")
 
