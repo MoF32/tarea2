@@ -1,7 +1,7 @@
 import streamlit as st
 import math
 
-# 1. Definición de la función de simulación (se mantiene intacta tu lógica)
+# 1. Definición de la función de simulación (lógica original)
 def calcular_simulacion_wifi(input_data):
     limites_generacion = {
         'Wi-Fi 4': {'max_speed': 150, 'base_latency': 25},
@@ -115,6 +115,14 @@ col1, col2, col3 = st.columns(3)
 col1.metric(label="Intensidad (RSSI)", value=f"{resultados['rssi']} dBm")
 col2.metric(label="Velocidad Real", value=f"{resultados['velocidad_mbps']} Mbps")
 col3.metric(label="Latencia (Ping)", value=f"{resultados['latencia_ms']} ms")
+
+# --- NUEVA SECCIÓN: Explicación de los parámetros ---
+with st.expander("❓ ¿Qué significan estos resultados?"):
+    st.markdown("""
+    * **Intensidad (RSSI):** Indica la potencia de la señal recibida en decibelios relativos a un milivatio (dBm). Al ser valores negativos, **mientras más cerca esté de 0, mejor**. Por ejemplo, `-30 dBm` es una señal perfecta al lado del router, mientras que `-80 dBm` o menos es una señal muy débil.
+    * **Velocidad Real (Throughput):** Es el ancho de banda efectivo medido en Megabits por segundo (Mbps) al que tu dispositivo puede transferir datos. Se calcula reduciendo la velocidad máxima teórica en función de la pérdida de señal y la congestión del entorno.
+    * **Latencia (Ping):** Mide el tiempo de ida y vuelta (en milisegundos) que tarda un paquete de datos en viajar desde tu dispositivo al router. Un número **más bajo es mejor**. Si la señal es mala o hay saturación, aumentará debido a la pérdida y retransmisión de paquetes.
+    """)
 
 st.markdown("---")
 
