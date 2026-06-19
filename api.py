@@ -1,7 +1,7 @@
 import streamlit as st
 import math
 
-# 1. Definición de la función de simulación (lógica original)
+# 1. Función de simulación con lógica de paredes diferenciada
 def calcular_simulacion_wifi(input_data):
     limites_generacion = {
         'Wi-Fi 4': {'max_speed': 150, 'base_latency': 25},
@@ -13,21 +13,31 @@ def calcular_simulacion_wifi(input_data):
     generacion = input_data.get('generacion', 'Wi-Fi 6')
     banda = input_data.get('banda', '5 GHz')
     distancia = input_data.get('distancia', 1)
-    paredes = input_data.get('paredes', 0)
+    paredes_finas = input_data.get('paredes_finas', 0)
+    paredes_gruesas = input_data.get('paredes_gruesas', 0)
     congestion = input_data.get('congestion', 'Baja')
 
     gen_props = limites_generacion.get(generacion, limites_generacion['Wi-Fi 6'])
 
-    # CÁLCULO DE RSSI
+    # CÁLCULO DE RSSI (Potencia de señal)
     rssi = -30
     factor_distancia = 20 if banda == '2.4 GHz' else (23 if banda == '5 GHz' else 25)
 
     if distancia > 1:
         rssi -= factor_distancia * math.log10(distancia)
 
-    perdida_por_pared = 6 if banda == '2.4 GHz' else (12 if banda == '5 GHz' else 15)
-    rssi -= (paredes * perdida_por_pared)
+    # Coeficientes de pérdida por tipo de pared y banda
+    # Las paredes gruesas afectan mucho más a las frecuencias altas (5 y 6 GHz)
+    if banda == '2.4 GHz':
+        p_fina, p_gruesa = 3, 8
+    elif banda == '5 GHz':
+        p_fina, p_gruesa = 5, 15
+    else: # 6 GHz
+        p_fina, p_gruesa = 7, 20
 
+    rssi -= (paredes_finas * p_fina) + (paredes_gruesas * p_gruesa)
+
+    # Límites físicos del RSSI
     if rssi > -30: rssi = -30
     if rssi < -90: rssi = -90
 
@@ -41,13 +51,12 @@ def calcular_simulacion_wifi(input_data):
     # VELOCIDAD REAL
     velocidad_base = gen_props['max_speed'] * eficiencia_senal
     factor_congestion = 1.0
-    if congestion == 'Media':
-        factor_congestion = 0.65
-    elif congestion == 'Alta':
-        factor_congestion = 0.30
+    if congestion == 'Media': factor_congestion = 0.65
+    elif congestion == 'Alta': factor_congestion = 0.30
 
     velocidad_final = velocidad_base * factor_congestion
 
+    # Penalizaciones extremas por señal baja
     if rssi <= -85: velocidad_final *= 0.1
     if rssi <= -89: velocidad_final = 0.0
 
@@ -56,13 +65,9 @@ def calcular_simulacion_wifi(input_data):
     if eficiencia_senal < 0.8:
         latencia_final += (1.0 - eficiencia_senal) * 80
 
-    if congestion == 'Media':
-        latencia_final += 15
-    elif congestion == 'Alta':
-        latencia_final += 60
-
-    if velocidad_final == 0.0:
-        latencia_final = float('inf')
+    if congestion == 'Media': latencia_final += 15
+    elif congestion == 'Alta': latencia_final += 60
+    if velocidad_final == 0.0: latencia_final = float('inf')
 
     # ESTADO GENERAL
     estado = 'Excelente'
@@ -85,70 +90,68 @@ def calcular_simulacion_wifi(input_data):
 st.set_page_config(page_title="Simulador de Rendimiento Wi-Fi", page_icon="📶", layout="centered")
 
 st.title("📶 Simulador de Rendimiento Wi-Fi")
-st.markdown("Ajusta los parámetros en la barra lateral para ver cómo afectan la calidad de tu conexión en tiempo real.")
+st.markdown("Ajusta los parámetros para observar cómo el entorno afecta tu conexión.")
 
 # Controles en la barra lateral
 st.sidebar.header("⚙️ Parámetros de Simulación")
 
 gen_seleccionada = st.sidebar.selectbox("Generación Wi-Fi", ['Wi-Fi 4', 'Wi-Fi 5', 'Wi-Fi 6', 'Wi-Fi 7'], index=2)
 banda_seleccionada = st.sidebar.radio("Banda de Frecuencia", ['2.4 GHz', '5 GHz', '6 GHz'], index=1)
-distancia_m = st.sidebar.slider("Distancia al Router (metros)", min_value=1, max_value=50, value=12)
-num_paredes = st.sidebar.slider("Paredes de concreto intermedias", min_value=0, max_value=5, value=2)
-congestion_red = st.sidebar.select_slider("Congestión de la Red", options=['Baja', 'Media', 'Alta'], value='Alta')
+distancia_m = st.sidebar.slider("Distancia al Router (metros)", 1, 50, 12)
 
-# Crear el diccionario de entrada para la función
+st.sidebar.subheader("Obstáculos (Paredes)")
+p_finas = st.sidebar.slider("Paredes Finas (Tabique/Madera)", 0, 5, 1)
+p_gruesas = st.sidebar.slider("Paredes Gruesas (Concreto/Ladrillo)", 0, 5, 1)
+
+congestion_red = st.sidebar.select_slider("Congestión de la Red", options=['Baja', 'Media', 'Alta'], value='Baja')
+
+# Diccionario de entrada
 datos_entrada = {
     'generacion': gen_seleccionada,
     'banda': banda_seleccionada,
     'distancia': distancia_m,
-    'paredes': num_paredes,
+    'paredes_finas': p_finas,
+    'paredes_gruesas': p_gruesas,
     'congestion': congestion_red
 }
 
-# Ejecutar la simulación automáticamente al mover los controles
 resultados = calcular_simulacion_wifi(datos_entrada)
 
-# --- NUEVA SECCIÓN: EXPLICACIÓN DE PARÁMETROS DE ENTRADA ---
+# --- EXPLICACIÓN DE PARÁMETROS ---
 with st.expander("⚙️ ¿Qué significan los parámetros de simulación?"):
-    st.markdown("""
-    * **Generación Wi-Fi:** Define la tecnología del estándar actual (802.11). Las versiones más nuevas (**Wi-Fi 6 y 7**) utilizan mejores modulaciones y tecnologías para transferir más datos por segundo y ofrecer latencias base extremadamente bajas en comparación con los antiguos **Wi-Fi 4 y 5**.
-    * **Banda de Frecuencia:** La frecuencia de la onda de radio. La banda **2.4 GHz** viaja más lejos y atraviesa mejor los obstáculos, pero es lenta y saturada. Las bandas de **5 GHz y 6 GHz** ofrecen velocidades masivas, pero su onda más corta sufre una pérdida drástica de potencia al chocar con paredes u objetos.
-    * **Distancia al Router:** El espacio físico entre tu dispositivo y el punto de acceso. Las ondas de radio disminuyen su potencia de manera logarítmica respecto a la distancia; a mayor distancia, menor señal (RSSI).
-    * **Paredes de concreto:** Obstáculos físicos directos. El concreto absorbe las ondas electromagnéticas de alta frecuencia de forma severa. Cada pared añadida reduce críticamente la potencia restante del enlace.
-    * **Congestión de la Red:** El nivel de interferencia y tráfico debido a otros dispositivos conectados en tu hogar o en redes vecinas usando el mismo canal. No afecta la potencia física de la señal (RSSI), pero compite por los tiempos de transmisión, limitando la velocidad real y elevando la latencia (*lag*).
+    st.markdown(f"""
+    * **Generación Wi-Fi:** Estándar tecnológico. Las versiones superiores (6 y 7) gestionan mejor la pérdida de datos.
+    * **Banda de Frecuencia:** La frecuencia 2.4 GHz tiene mayor penetración en paredes pero menos velocidad. Las de 5 y 6 GHz son muy sensibles a obstáculos.
+    * **Distancia:** A mayor distancia, la onda pierde energía naturalmente.
+    * **Tipos de Pared:**
+        * **Finas (Atenuación leve):** Materiales como drywall, madera o vidrio. Restan entre **3 y 7 dB**.
+        * **Gruesas (Atenuación severa):** Concreto armado, ladrillo macizo o piedra. Pueden restar hasta **20 dB**, bloqueando casi por completo las bandas de 5/6 GHz.
+    * **Congestión:** Saturación por otros dispositivos. Afecta el tráfico, no la potencia de la señal.
     """)
 
 st.markdown("---")
 
-# Mostrar resultados principales en métricas atractivas
+# Resultados
 st.subheader("📊 Resultados del Diagnóstico")
-
 col1, col2, col3 = st.columns(3)
-col1.metric(label="Intensidad (RSSI)", value=f"{resultados['rssi']} dBm")
-col2.metric(label="Velocidad Real", value=f"{resultados['velocidad_mbps']} Mbps")
-col3.metric(label="Latencia (Ping)", value=f"{resultados['latencia_ms']} ms")
+col1.metric("Intensidad (RSSI)", f"{resultados['rssi']} dBm")
+col2.metric("Velocidad Real", f"{resultados['velocidad_mbps']} Mbps")
+col3.metric("Latencia (Ping)", f"{resultados['latencia_ms']} ms")
 
-# SECCIÓN DE EXPLICACIÓN DE RESULTADOS
+# --- EXPLICACIÓN DE RESULTADOS ---
 with st.expander("🔍 ¿Qué significan estos resultados?"):
     st.markdown("""
-    * **Intensidad (RSSI):** Mide la potencia de la señal recibida en decibelios relativos a un milivatio (dBm). Al ser valores negativos, **cuanto más cerca esté de 0, mejor** (ej. -30 dBm es excelente, mientras que -85 dBm es una señal muy débil). Las paredes y la distancia la disminuyen drásticamente.
-    * **Velocidad Real:** Es el ancho de banda efectivo de bajada estimado en Megabits por segundo (Mbps). Representa qué tan rápido puedes descargar archivos o reproducir contenido. Se calcula reduciendo el máximo teórico de la generación Wi-Fi elegida según la pérdida de señal y la saturación/congestión del entorno.
-    * **Latencia (Ping):** Es el tiempo de respuesta de la conexión medido en milisegundos (ms). Indica cuánto tarda un paquete de datos en ir a su destino y volver. **A menor latencia, más instantánea es la conexión** (crucial para juegos en línea o videollamadas). Si la velocidad llega a cero, se vuelve infinita ($\infty$), indicando pérdida total de enlace.
+    * **Intensidad (RSSI):** Indica qué tan "fuerte" llega la señal. De -30 a -50 es ideal. Por debajo de -80 la conexión es inestable.
+    * **Velocidad Real:** Lo que realmente puedes navegar después de restar pérdidas físicas e interferencias.
+    * **Latencia (Ping):** El retraso en milisegundos. Un ping alto hace que la navegación se sienta "pesada" o con lag.
     """)
 
 st.markdown("---")
 
-# Alertas visuales según el estado de la conexión
-st.subheader("📢 Estado de la Conexión")
+# Alertas de estado
 estado = resultados['estado']
-
-if estado == 'Excelente':
-    st.success(f"🟢 **Conexión {estado}**: Ideal para streaming 4K/8K, gaming competitivo y descargas masivas sin interrupciones.")
-elif estado == 'Buena':
-    st.info(f"🔵 **Conexión {estado}**: Rendimiento fluido para la mayoría de tareas diarias y videollamadas en HD.")
-elif estado == 'Regular':
-    st.warning(f"🟡 **Conexión {estado}**: Podrías experimentar almacenamiento en búfer (*buffering*) ocasional o picos de lag.")
-elif estado == 'Mala':
-    st.error(f"🟠 **Conexión {estado}**: Calidad crítica. Navegación lenta y desconexiones intermitentes muy probables.")
-else:
-    st.error(f"🔴 **{estado}**: No llega suficiente señal al dispositivo para sincronizar datos.")
+if estado == 'Excelente': st.success(f"🟢 **Conexión {estado}**: Máximo rendimiento disponible.")
+elif estado == 'Buena': st.info(f"🔵 **Conexión {estado}**: Funcionamiento óptimo para casi todo.")
+elif estado == 'Regular': st.warning(f"🟡 **Conexión {estado}**: Posibles micro-cortes o lentitud en video.")
+elif estado == 'Mala': st.error(f"🟠 **Conexión {estado}**: Señal crítica. Se recomienda usar un repetidor.")
+else: st.error(f"🔴 **{estado}**: Sin comunicación con el router.")
