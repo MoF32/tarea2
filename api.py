@@ -1,7 +1,7 @@
 import streamlit as st
 import math
 
-# 1. Función de simulación con lógica de paredes diferenciada
+# 1. Función de simulación con lógica de paredes adaptada
 def calcular_simulacion_wifi(input_data):
     limites_generacion = {
         'Wi-Fi 4': {'max_speed': 150, 'base_latency': 25},
@@ -13,8 +13,8 @@ def calcular_simulacion_wifi(input_data):
     generacion = input_data.get('generacion', 'Wi-Fi 6')
     banda = input_data.get('banda', '5 GHz')
     distancia = input_data.get('distancia', 1)
-    paredes_finas = input_data.get('paredes_finas', 0)
-    paredes_gruesas = input_data.get('paredes_gruesas', 0)
+    cantidad_paredes = input_data.get('cantidad_paredes', 0)
+    tipo_pared = input_data.get('tipo_pared', 'Fina (Tabique/Madera)')
     congestion = input_data.get('congestion', 'Baja')
 
     gen_props = limites_generacion.get(generacion, limites_generacion['Wi-Fi 6'])
@@ -26,15 +26,19 @@ def calcular_simulacion_wifi(input_data):
     if distancia > 1:
         rssi -= factor_distancia * math.log10(distancia)
 
-    # CORRECCIÓN DE SINTAXIS: Asignación limpia de coeficientes de pérdida
+    # Coeficientes de pérdida según banda y tipo de pared seleccionado
     if banda == '2.4 GHz':
         p_fina, p_gruesa = 3, 8
     elif banda == '5 GHz':
         p_fina, p_gruesa = 5, 15
-    else:
+    else:  # 6 GHz
         p_fina, p_gruesa = 7, 20
 
-    rssi -= (paredes_finas * p_fina) + (paredes_gruesas * p_gruesa)
+    # Determinar qué coeficiente usar
+    coeficiente_pared = p_fina if tipo_pared == 'Fina (Tabique/Madera)' else p_gruesa
+
+    # Aplicar la atenuación total de las paredes
+    rssi -= (cantidad_paredes * coeficiente_pared)
 
     # Límites físicos del RSSI
     if rssi > -30: 
@@ -108,19 +112,20 @@ gen_seleccionada = st.sidebar.selectbox("Generación Wi-Fi", ['Wi-Fi 4', 'Wi-Fi 
 banda_seleccionada = st.sidebar.radio("Banda de Frecuencia", ['2.4 GHz', '5 GHz', '6 GHz'], index=1)
 distancia_m = st.sidebar.slider("Distancia al Router (metros)", 1, 50, 12)
 
+# MODIFICACIÓN: Un solo bloque para obstáculos
 st.sidebar.subheader("Obstáculos (Paredes)")
-p_finas = st.sidebar.slider("Paredes Finas (Tabique/Madera)", 0, 5, 1)
-p_gruesas = st.sidebar.slider("Paredes Gruesas (Concreto/Ladrillo)", 0, 5, 1)
+tipo_pared_sel = st.sidebar.selectbox("Tipo de Pared", ['Fina (Tabique/Madera)', 'Gruesa (Concreto/Ladrillo)'])
+cantidad_paredes_sel = st.sidebar.slider("Cantidad de Paredes", 0, 5, 1)
 
 congestion_red = st.sidebar.select_slider("Congestión de la Red", options=['Baja', 'Media', 'Alta'], value='Baja')
 
-# Diccionario de entrada
+# Diccionario de entrada adaptado
 datos_entrada = {
     'generacion': gen_seleccionada,
     'banda': banda_seleccionada,
     'distancia': distancia_m,
-    'paredes_finas': p_finas,
-    'paredes_gruesas': p_gruesas,
+    'cantidad_paredes': cantidad_paredes_sel,
+    'tipo_pared': tipo_pared_sel,
     'congestion': congestion_red
 }
 
@@ -166,10 +171,10 @@ elif estado == 'Regular': st.warning(f"🟡 **Conexión {estado}**: Posibles mic
 elif estado == 'Mala': st.error(f"🟠 **Conexión {estado}**: Señal crítica. Se recomienda usar un repetidor.")
 else: st.error(f"🔴 **{estado}**: Sin comunicación con el router.")
 
-# --- ACLARACIÓN FINAL (PLAN DE INTERNET) ---
+# --- ACALARACIÓN FINAL ---
 st.markdown("---")
 st.info("""
 💡 **Nota importante sobre tu velocidad de Internet:** Este simulador calcula la **capacidad máxima de transmisión inalámbrica (el "tubo" de tu Wi-Fi)** entre el router y tu dispositivo bajo estas condiciones. 
 
-Si la *Velocidad Real* calculada aquí (por ejemplo, 500 Mbps) es mayor que el plan de internet que tienes contratado con tu proveedor (por ejemplo, 100 Mbps), **no significa que el simulador funcione mal**. En la práctica, tu velocidad de navegación real estará limitada por el tope de tu plan contratado. ¡Tu Wi-Fi da para más, pero tu internet tiene un límite comercial!
+Si la *Velocidad Real* calculada aquí es mayor que el plan de internet que tienes contratado con tu proveedor, **no significa que el simulador funcione mal**. En la práctica, tu velocidad de navegación real estará limitada por el tope de tu plan contratado.
 """)
