@@ -17,41 +17,52 @@ tipo_pared_sel = st.sidebar.selectbox("Tipo de Pared", ['Fina (Tabique/Madera)',
 cantidad_paredes_sel = st.sidebar.slider("Cantidad de Paredes", 0, 5, 1)
 congestion_red = st.sidebar.select_slider("Congestión de la Red", options=['Baja', 'Media', 'Alta'], value='Baja')
 
-# 2. PROCESAMIENTO Y CÁLCULOS DICCIONARIOS (SIMPLIFICACIÓN)
+# 2. PROCESAMIENTO Y CÁLCULOS (ESTRICTAMENTE LINEALES)
 limites_generacion = {
     'Wi-Fi 4': {'max_speed': 150, 'base_latency': 25}, 'Wi-Fi 5': {'max_speed': 866, 'base_latency': 12},
     'Wi-Fi 6': {'max_speed': 1201, 'base_latency': 6}, 'Wi-Fi 7': {'max_speed': 2402, 'base_latency': 2}
 }
-props_bandas = { # [Factor Distancia, Atenuación Fina, Atenuación Gruesa]
-    '2.4 GHz': [20, 3, 8], '5 GHz': [23, 5, 15], '6 GHz': [25, 7, 20]
+# props_bandas: [Pérdida lineal en dB por metro, Atenuación Fina, Atenuación Gruesa]
+props_bandas = { 
+    '2.4 GHz': [0.8, 3, 8], 
+    '5 GHz':   [1.1, 5, 15], 
+    '6 GHz':   [1.3, 7, 20]
 }
 factores_congestion = {'Baja': [1.0, 0], 'Media': [0.65, 15], 'Alta': [0.30, 60]}
 
 gen_props = limites_generacion[gen_sel]
-f_dist, p_fina, p_gruesa = props_bandas[banda_sel]
+f_dist_lineal, p_fina, p_gruesa = props_bandas[banda_sel]
 f_cong, lat_cong = factores_congestion[congestion_red]
 
-# Cálculo de RSSI
-rssi = -30 - (f_dist * math.log10(distancia_m) if distancia_m > 1 else 0)
+# Cálculo de RSSI usando una Función Lineal: RSSI = -30 - (Pérdida_Metro * Metros) - Obstáculos
 coef_pared = p_fina if tipo_pared_sel == 'Fina (Tabique/Madera)' else p_gruesa
-rssi = max(-90, min(-30, rssi - (cantidad_paredes_sel * coef_pared)))
+pérdida_total_obstaculos = cantidad_paredes_sel * coef_pared
+pérdida_total_distancia = (distancia_m - 1) * f_dist_lineal
 
-# Eficiencia y Penalizaciones
+rssi = -30 - pérdida_total_distancia - pérdida_total_obstaculos
+rssi = max(-90, min(-30, rssi))  # Acotación por límites físicos transmisor/receptor
+
+# Eficiencia de señal (Mapeo de función lineal continua entre -90 y -50 dBm)
 eficiencia_senal = max(0.0, (rssi - (-90)) / 40) if rssi < -50 else 1.0
-velocidad_final = gen_props['max_speed'] * eficiencia_senal * f_cong
-if rssi <= -85: velocidad_final *= 0.1 if rssi > -89 else 0.0
 
-# Latencia y Estado
-latencia_final = float('inf') if velocidad_final == 0 else max(0, gen_props['base_latency'] + (1.0 - eficiencia_senal) * 80 + lat_cong)
+# Velocidad Final (Función lineal aditiva y multiplicativa directa)
+velocidad_final = gen_props['max_speed'] * eficiencia_senal * f_cong
+
+# Latencia Final (Función lineal inversa respecto a la eficiencia de señal)
+if velocidad_final == 0:
+    latencia_final = float('inf')
+else:
+    latencia_final = max(0, gen_props['base_latency'] + (1.0 - eficiencia_senal) * 80 + lat_cong)
 latencia_texto = '∞' if math.isinf(latencia_final) else round(latencia_final)
 
+# Determinación de Estados por umbrales lineales
 estados = [(-55, 'Excelente'), (-70, 'Buena'), (-82, 'Regular'), (-89, 'Mala')]
 estado = next((est for lim, est in estados if rssi >= lim), 'Desconectado')
 if velocidad_final == 0: estado = 'Desconectado'
 
 # 3. INTERFAZ DE SALIDA (LOGICA VISUAL)
 with st.expander("⚙️ ¿Qué significan los parámetros de simulación?"):
-    st.markdown(" * **Generación:** Estándar de tecnología.\n * **Frecuencia:** 2.4 GHz penetra mejor; 5 y 6 GHz son veloces pero sensibles.\n * **Paredes:** Finas restan 3-7 dB; gruesas restan hasta 20 dB.")
+    st.markdown(" * **Generación:** Estándar de tecnología.\n * **Frecuencia:** Coeficiente de atenuación lineal variable.\n * **Paredes:** Modificadores lineales directos.")
 
 st.markdown("---")
 st.subheader("📊 Resultados del Diagnóstico")
@@ -61,7 +72,7 @@ col2.metric("Velocidad Real", f"{round(velocidad_final)} Mbps")
 col3.metric("Latencia (Ping)", f"{latencia_texto} ms")
 
 with st.expander("🔍 ¿Qué significan estos resultados?"):
-    st.markdown(" * **RSSI:** Ideal -30 a -50. Menos de -80 es inestable.\n * **Velocidad Real:** Navegación neta final.\n * **Latencia:** Retraso (ping).")
+    st.markdown(" * **RSSI:** Calculado mediante ecuación de primer grado.\n * **Velocidad Real:** Proporcional a la eficiencia lineal.\n * **Latencia:** Comportamiento de rampa invertida.")
 
 st.markdown("---")
 st.subheader("📢 Estado de la Conexión")
