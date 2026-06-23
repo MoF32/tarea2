@@ -112,7 +112,6 @@ gen_seleccionada = st.sidebar.selectbox("Generación Wi-Fi", ['Wi-Fi 4', 'Wi-Fi 
 banda_seleccionada = st.sidebar.radio("Banda de Frecuencia", ['2.4 GHz', '5 GHz', '6 GHz'], index=1)
 distancia_m = st.sidebar.slider("Distancia al Router (metros)", 1, 50, 12)
 
-# MODIFICACIÓN: Un solo bloque para obstáculos
 st.sidebar.subheader("Obstáculos (Paredes)")
 tipo_pared_sel = st.sidebar.selectbox("Tipo de Pared", ['Fina (Tabique/Madera)', 'Gruesa (Concreto/Ladrillo)'])
 cantidad_paredes_sel = st.sidebar.slider("Cantidad de Paredes", 0, 5, 1)
@@ -171,7 +170,55 @@ elif estado == 'Regular': st.warning(f"🟡 **Conexión {estado}**: Posibles mic
 elif estado == 'Mala': st.error(f"🟠 **Conexión {estado}**: Señal crítica. Se recomienda usar un repetidor.")
 else: st.error(f"🔴 **{estado}**: Sin comunicación con el router.")
 
-# --- ACALARACIÓN FINAL ---
+# ==========================================
+# NUEVO: RECOMENDACIONES DINÁMICAS
+# ==========================================
+st.markdown("---")
+st.subheader("🛠️ Recomendaciones de Optimización")
+
+if estado in ['Excelente', 'Buena']:
+    st.balloons()
+    st.success("✨ **¡Tu configuración actual es ideal!** No requieres cambios de hardware ni de ubicación. La señal física y el entorno permiten un rendimiento óptimo.")
+else:
+    st.markdown("Basado en el diagnóstico actual, te sugerimos aplicar las siguientes soluciones:")
+    
+    # 1. Recomendaciones por distancia u obstáculos
+    if distancia_m > 20 or cantidad_paredes_sel >= 2:
+        st.markdown("""
+        * **📍 Reubicación o Repetidores:** La señal se degrada fuertemente por la distancia o materiales densos. 
+          * Intenta mover el router a una posición más central y elevada.
+          * Si no puedes moverlo, considera instalar un **sistema Wi-Fi Mesh (en malla)** en lugar de un repetidor tradicional para mantener la velocidad sin crear microcortes.
+        """)
+        
+    # 2. Recomendaciones por la banda elegida
+    if banda_seleccionada in ['5 GHz', '6 GHz'] and estado in ['Mala', 'Desconectado']:
+        st.markdown("""
+        * **🔄 Cambia a la banda de 2.4 GHz:** Estás usando una frecuencia alta (5/6 GHz) que ofrece mucha velocidad pero sufre mucho con los obstáculos. Si necesitas cobertura a través de varias paredes, prioriza la banda de 2.4 GHz en tu dispositivo, ya que atraviesa mejor las estructuras sólidas.
+        """)
+    elif banda_seleccionada == '2.4 GHz' and congestion_red in ['Media', 'Alta']:
+        st.markdown("""
+        * **🚀 Migra a 5 GHz o 6 GHz:** La banda de 2.4 GHz está severamente saturada. Si tu router y dispositivo lo permiten, conéctate a la banda de 5 GHz. Aunque tiene menos alcance, cuenta con muchos más canales libres y evitarás la ralentización por congestión vecinal.
+        """)
+
+    # 3. Recomendaciones por tecnología obsoleta
+    if gen_seleccionada in ['Wi-Fi 4', 'Wi-Fi 5']:
+        st.markdown("""
+        * **🏷️ Actualización de Hardware:** Estás simulando con un estándar antiguo (`Wi-Fi 4` o `Wi-Fi 5`). Los routers y dispositivos modernos con **Wi-Fi 6 o Wi-Fi 7** gestionan de forma mucho más eficiente las interferencias y la pérdida de paquetes en entornos complejos.
+        """)
+
+    # 4. Recomendaciones por congestión pura
+    if congestion_red == 'Alta' and estado == 'Regular':
+        st.markdown("""
+        * **🌐 Gestión de Canales:** Tu señal física llega bien, pero la red está saturada. Entra a la configuración de tu router y cambia el canal de transmisión a uno menos congestionado (puedes usar apps móviles como *Wi-Fi Analyzer* para ver cuáles están libres en tu zona).
+        """)
+
+    # 5. Caso extremo: Desconectado
+    if estado == 'Desconectado':
+        st.markdown("""
+        * **🔌 Solución Cableada:** El entorno físico bloquea por completo la señal inalámbrica. Para este escenario, la única alternativa real es tirar un cable Ethernet directo o utilizar adaptadores **PLC (Powerline)**, que transmiten la señal de internet a través de los cables eléctricos de la casa.
+        """)
+
+# --- ACLARACIÓN FINAL (PLAN DE INTERNET) ---
 st.markdown("---")
 st.info("""
 💡 **Nota importante sobre tu velocidad de Internet:** Este simulador calcula la **capacidad máxima de transmisión inalámbrica (el "tubo" de tu Wi-Fi)** entre el router y tu dispositivo bajo estas condiciones. 
