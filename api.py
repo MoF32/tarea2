@@ -72,8 +72,11 @@ col2.metric("Velocidad Real", f"{round(velocidad_final)} Mbps")
 col3.metric("Latencia (Ping)", f"{latencia_texto} ms")
 
 with st.expander("🔍 ¿Qué significan estos resultados?"):
-    st.markdown(" * **Intensidad (RSSI):** Indica qué tan fuerte llega la señal. De -30 a -50 es ideal. Por debajo de -80 la conexión es inestable.* **Velocidad Real:** Lo que realmente puedes navegar después de restar pérdidas físicas e interferencias.* **Latencia (Ping):** El retraso en milisegundos. Un ping alto hace que la navegación se sienta "pesada" o con lag.")
-
+    st.markdown("""
+    * **Intensidad (RSSI):** Indica qué tan "fuerte" llega la señal. De -30 a -50 es ideal. Por debajo de -80 la conexión es inestable.
+    * **Velocidad Real:** Lo que realmente puedes navegar después de restar pérdidas físicas e interferencias.
+    * **Latencia (Ping):** El retraso en milisegundos. Un ping alto hace que la navegación se sienta "pesada" o con lag.
+    """)
 st.markdown("---")
 st.subheader("📢 Estado de la Conexión")
 alertas = {
